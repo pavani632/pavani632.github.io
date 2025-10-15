@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logic Lab - Coding Quiz</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+    <style>
+        :root {
+            --pink-top: #fce4e8;
+            --pink-mid: #f8d0d9;
+            --cyan-mid: #d4f1f5;
+            --cyan-bottom: #e0f7f9;
+            --text-dark: #2b2b2b;
+            --accent-pink: #ff8fa3;
+            --accent-cyan: #00c2d1;
+            --success: #22c55e;
+            --error: #ef4444;
+            --white: #ffffff;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(to bottom, var(--pink-top), var(--pink-mid), var(--cyan-mid), var(--cyan-bottom));
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 40px 20px;
+        }
+        .app-container {
+            width: 100%;
+            max-width: 900px;
+            background: var(--white);
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        .header {
+            background: linear-gradient(90deg, var(--accent-pink), var(--accent-cyan));
+            color: var(--white);
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 4px solid rgba(255, 255, 255, 0.4);
+        }
+        .header h1 {
+            font-weight: 700;
+            font-size: 1.8rem;
+            margin: 0;
+        }
+        .timer-badge {
+            background-color: rgba(255, 255, 255, 0.2);
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-weight: 600;
+            color: #fff;
+            font-size: 1.1rem;
+        }
+        .quiz-card {
+            padding: 30px;
+        }
+        .question-item {
+            background: linear-gradient(to right, #fff, #fafafa);
+            border: 1px solid #e5e7eb;
+            border-left: 5px solid var(--accent-cyan);
+            border-radius: 10px;
+            margin-bottom: 25px;
+            padding: 15px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .question-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 194, 209, 0.1);
+        }
+        .option-label {
+            display: block;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 12px 15px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            background: #fff;
+        }
+        .option-label:hover {
+            background: var(--cyan-mid);
+            border-color: var(--accent-cyan);
+        }
+        .option-label input[type="radio"] {
+            margin-right: 10px;
+        }
+        .result-card {
+            text-align: center;
+            padding: 50px 30px;
+        }
+        .success-icon {
+            font-size: 4rem;
+            color: var(--success);
+            margin-bottom: 20px;
+        }
+        .fail-icon {
+            font-size: 4rem;
+            color: var(--error);
+            margin-bottom: 20px;
+        }
+        button {
+            background: linear-gradient(90deg, var(--accent-pink), var(--accent-cyan));
+            color: white;
+            font-weight: 600;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: opacity 0.3s;
+        }
+        button:hover {
+            opacity: 0.85;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @media (max-width: 576px) {
+            .header { flex-direction: column; gap: 10px; padding: 15px; text-align: center; }
+            .header h1 { font-size: 1.5rem; }
+            .quiz-card { padding: 15px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div id="app-content"></div>
+    </div>
+
+    <!-- Message Modal -->
+    <div class="modal fade" id="messageModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="messageModalLabel"></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="messageModalBody"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="modalActionBtn">Continue</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script type="module">
+    // Import Firebase modules
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
+    import { getFirestore, collection, getDocs, setDoc, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
+
+    // Your web app's Firebase configuration (from your original script)
+    const firebaseConfig = {
+        apiKey: "AIzaSyAwblTFPA4nLMaQi2IVzpg5FOkeiXWCWNU",
+        authDomain: "logic-lab-3f3a4.firebaseapp.com",
+        projectId: "logic-lab-3f3a4",
+        storageBucket: "logic-lab-3f3a4.firebasestorage.app",
+        messagingSenderId: "57347337255",
+        appId: "1:57347337255:web:773b33bfe79afa063bb202"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+
+    // Initialize Firestore
+    const db = getFirestore(app);
+
+    // Make Firestore functions globally accessible (optional)
+    window.db = db;
+    window.collection = collection;
+    window.getDocs = getDocs;
+    window.setDoc = setDoc;
+    window.doc = doc;
+    window.deleteDoc = deleteDoc;
+</script>
+    <script>
+        const EXAM_PASSWORD = "exam123";
+        const ADMIN_PASSWORD = "admin123";
+        const PASS_THRESHOLD = 10;
+
+        const LEVEL_CONFIG = {
+            1: { name: 'Easy', time: 900, minScore: PASS_THRESHOLD, levelKey: 'level1' },
+            2: { name: 'Hard', time: 900, minScore: PASS_THRESHOLD, levelKey: 'level2' }
+        };
+
+        let appState = {
+            currentView: 'login',
+            currentLevel: 1,
+            currentUser: null,
+            currentQuizQuestions: [],
+            timer: null,
+            timeRemaining: 0,
+            userAnswers: {},
+            score: { level1: null, level2: null }
+        };
+
+        const QUIZ_DATABASE = [
+            // LEVEL 1 – EASY CODING QUESTIONS
+            // Add this among your Level 2 questions (e.g., replace one or append)
+{
+  id: 1,
+  question: "What is the output of the following code?<br><pre>def func(a, b=[]):\n    b.append(a)\n    return b\n\nprint(func(1))\nprint(func(2))\nprint(func(3, []))\nprint(func(4))</pre>",
+  options: [
+    "[1]<br>[2]<br>[3]<br>[4]",
+    "[1]<br>[1, 2]<br>[3]<br>[1, 2, 4]",
+    "[1]<br>[1, 2]<br>[3]<br>[4]",
+    "[1]<br>[2]<br>[3]<br>[1, 2, 3, 4]"
+  ],
+  answer: "[1]<br>[1, 2]<br>[3]<br>[1, 2, 4]",
+  category: "coding",
+  level: 1
+},
+{
+  id: 2,
+  question: "Which of the following is <strong>not</strong> a feature of OOP?",
+  options: [
+    "Abstraction",
+    "Encapsulation",
+    "Recursion",
+    "Inheritance"
+  ],
+  answer: "Recursion",
+  category: "coding",
+  level: 1
+},
+{
+  id: 3,
+  question: "What is the output of the following code?<br><pre>def mystery(n):\n    if n == 0:\n        return 0\n    return n % 2 + 10 * mystery(n // 2)\n\nprint(mystery(6))</pre>",
+  options: ["6", "110", "101", "1001"],
+  answer: "110",
+  category: "coding",
+  level: 1
+},
+{
+  id: 4,
+  question: "Given an array of size <code>n</code>, what is the maximum number of swaps performed by selection sort?",
+  options: ["n", "n−1", "n²", "n/2"],
+  answer: "n−1",
+  category: "coding",
+  level: 1
+},
+{
+  id: 5,
+  question: "What is the output of this code?<br><pre>for i in range(3):<br>    print(i)<br>else:<br>    print('Done')</pre>",
+  options: [
+    "0 1 2",
+    "0 1 2 Done",
+    "Done only",
+    "Syntax Error"
+  ],
+  answer: "0 1 2 Done",
+  category: "coding",
+  level: 1
+},
+{
+  id: 6,
+  question: "What is the difference between <code>is</code> and <code>==</code> in Python?",
+  options: [
+    "No difference, both compare values",
+    "is compares values, == compares identity",
+    "is compares object identity, == compares values",
+    "Both are used only for strings"
+  ],
+  answer: "is compares object identity, == compares values",
+  category: "coding",
+  level: 1
+},
+{
+  id: 7,
+  question: "Which of the following statements about arrays in C is true?",
+  options: [
+    "Arrays are passed by value to functions",
+    "Arrays are passed by reference to functions",
+    "Arrays can change their size dynamically",
+    "Arrays store addresses instead of elements"
+  ],
+  answer: "Arrays are passed by reference to functions",
+  category: "coding",
+  level: 1
+},
+{
+  id: 8,
+  question: "Which of the following is <strong>not true</strong> about recursion?",
+  options: [
+    "Every recursive function must have a base case",
+    "Recursion can always be replaced by iteration",
+    "Recursion uses stack memory",
+    "Recursion always takes less memory than loops"
+  ],
+  answer: "Recursion always takes less memory than loops",
+  category: "coding",
+  level: 1
+},
+{
+  id: 9,
+  question: "Which of the following will cause a <strong>compile-time error</strong> in Java?",
+  options: [
+    "int a = 10 / 0;",
+    "double d = 10.0 / 0;",
+    "System.out.println(10.0 / 0);",
+    "System.out.println(10 / 0.0);"
+  ],
+  answer: "int a = 10 / 0;",
+  category: "coding",
+  level: 1
+},
+{
+  id: 10,
+  question: "What is the worst-case time complexity of binary search?",
+  options: [
+    "O(n)",
+    "O(log n)",
+    "O(n²)",
+    "O(1)"
+  ],
+  answer: "O(log n)",
+  category: "coding",
+  level: 1
+},
+{
+  id: 11,
+  question: "If A = 1, B = 3, C = 6, D = 10, E = 15, then what is G?",
+  options: ["21", "22", "28", "27"],
+  answer: "28",
+  category: "coding",
+  level: 1
+},
+{
+  "id": 12,
+  "question": "Which of the following searching techniques uses divide and conquer?",
+  "options": ["Linear Search", "Binary Search", "Hashing", "DFS"],
+  "answer": "Binary Search",
+  "category": "algorithms",
+  "level": 1
+},
+{
+  "id": 13,
+  "question": "What is the postfix form of: (A + B) * (C - D)?",
+  "options": ["AB+CD-*", "ABCD+-*", "AB+CD-*", "AB+*CD-"],
+  "answer": "AB+CD-*",
+  "category": "data_structures",
+  "level": 1
+},
+{
+  "id": 14,
+  "question": "Find the odd one out from the given alternatives:",
+  "options": ["Sweet potato", "Cabbage", "Cauliflower", "Spinach"],
+  "answer": "Sweet potato",
+  "category": "logical_reasoning",
+  "level": 1
+},
+{
+  "id": 15,
+  "question": "32 : 125 :: 36 : ?",
+  "options": ["343", "512", "729", "1000"],
+  "answer": "729",
+  "category": "logical_reasoning",
+  "level": 1
+},
+{
+  "id": 16,
+  "question": "Which of the following is an Ordinary year?",
+  "options": ["1300", "2800", "2000", "1600"],
+  "answer": "1300",
+  "category": "calendar_reasoning",
+  "level": 1
+},
+{
+  "id": 17,
+  "question": "The average of 7 numbers is 50. If one number is removed, the average becomes 48. Find the removed number.",
+  "options": ["48", "50", "62", "64"],
+  "answer": "64",
+  "category": "quantitative_aptitude",
+  "level": 1
+},
+{
+  "id": 18,
+  "question": "Kavya is Mother of Navya. Navya is married to Dheeraj. Jaggu is the son of Dheeraj. Tina is mother of Dheeraj and Ganga. Ganga is the wife of Pavan. Tina has only one son and one daughter. Kavya is married to Farhan. How is Ganga related to Navya?",
+  "options": ["Sister in law", "Sister", "Mother", "Aunt"],
+  "answer": "Sister in law",
+  "category": "blood_relations",
+  "level": 1
+},
+{
+  "id": 19,
+  "question": "T M V B Z K W F J P O R H A C E S I\nWhat will come in place of question (?) mark in the following series?\nMB VK ZJ FH ?",
+  "options": ["RE", "OS", "RI", "HI"],
+  "answer": "RI",
+  "category": "alphabet_series",
+  "level": 1
+},
+{
+  "id": 20,
+  "question": "A and B individually can finish a job in 20 and 25 days respectively. They start working together, and B leaves the job 2 days before completion. Now the work will be finished in how many days?",
+  "options": ["12 days", "15 days", "24 days", "10 days"],
+  "answer": "12 days",
+  "category": "time_and_work",
+  "level": 1
+},
+{
+  "id": 21,
+  "question": "Three vehicles depart from X to Y at equal time gaps. They reach Y at the same moment and then proceed toward Z, which is located 240 km from Y. The first vehicle reaches Z an hour later than the second one. The third vehicle, after reaching Z, immediately reverses direction and moves back toward Y. The first and third vehicles encounter each other at a location 80 km away from Z. Determine the difference in speed between the first and third vehicles.",
+  "options": ["20 kmph", "60 kmph", "40 kmph", "80 kmph"],
+  "answer": "60 kmph",
+  "category": "quantitative_aptitude",
+  "level": 1
+},
+
+
+{
+  "id": 22,
+  "question": "A merchant has 1200 kg of sugar, part of which he sells at 6% profit and the rest at 15% profit. He gains 12% on the whole. The quantity sold at 15% profit is:",
+  "options": ["400kg", "600kg", "800kg", "None of these"],
+  "answer": "800kg",
+  "category": "profit_and_loss",
+  "level": 1
+},
+{
+  "id": 23,
+  "question": "On decreasing the price of a color TV by 20%, if sale is increased by 10%, the increase (or) decrease in the expenditure is:",
+  "options": ["4% decreases", "10% increases", "12% decreases", "None"],
+  "answer": "12% decreases",
+  "category": "percentage",
+  "level": 2
+},
+{
+  "id": 24,
+  "question": "The equal amount of money is deposited in two banks, each at 10% per annum for two years and four years respectively. If the difference between their interests is Rs 225, find each sum?",
+  "options": ["850", "1050", "1125", "None"],
+  "answer": "1125",
+  "category": "simple_interest",
+  "level": 1
+},
+{
+  "id": 25,
+  "question": "Though usually_____________, my neighbor’s cat was quite_______when it came to defending what she considered her territory; luckily for her, she would often win the fights she started.",
+  "options": [
+    "Antagonistic ... placatory",
+    "cantankerous ... belligerent",
+    "Serene ... amicable",
+    "Peaceful ... pugnacious"
+  ],
+  "answer": "Peaceful ... pugnacious",
+  "category": "verbal_ability",
+  "level": 1
+},
+{
+  "id": 26,
+  "question": "Scribble : Write :: Stammer : ?",
+  "options": ["Shout", "Weep", "Dance", "Speak"],
+  "answer": "Speak",
+  "category": "verbal_ability",
+  "level": 1
+},
+{
+  "id": 27,
+  "question": "Identify error in the following:\n(A) The teacher whom we met yesterday (B) is highly qualified and (C) with very good reputation.",
+  "options": ["A", "B", "C", "No error"],
+  "answer": "C",
+  "category": "english_grammar",
+  "level": 1
+},
+{
+  "id": 28,
+  "question": "Which of the following sentences is grammatically correct?",
+  "options": [
+    "Men in my office love to take longer coffee breaks.",
+    "The men in my office love taking long coffee breaks.",
+    "Men at my office take long coffee breaks and they love it.",
+    "Taking long breaks for coffee is what men in my office love to do"
+  ],
+  "answer": "The men in my office love taking long coffee breaks.",
+  "category": "english_grammar",
+  "level": 1
+},
+{
+  "id": 29,
+  "question": "One shopkeeper is offering two successive discounts of 14% and 10% on an item while the second one is offering flat 25% discount on the same item. Which shopkeeper should I buy the item from?",
+  "options": ["First Shopkeeper", "Second Shopkeeper", "Any of them; both are same", "Data Insufficient"],
+  "answer": "Second Shopkeeper",
+  "category": "percentage",
+  "level": 1
+},
+{
+  "id": 30,
+  "question": "A chord 20 cm long is drawn in a circle of diameter 24 cm. The perpendicular distance of the chord from the centre is",
+  "options": ["√41", "√42", "√45", "√44"],
+  "answer": "√44",
+  "category": "geometry",
+  "level": 1
+},
+
+            // { id: 2, question: "What is the output?<br><pre>let x = 5; x += 2; console.log(x);</pre>", options: ["5", "7", "10", "undefined"], answer: "7", category: "coding", level: 1 },
+            // { id: 3, question: "What is printed?<br><pre>for (let i = 0; i < 2; i++) { console.log(i); }</pre>", options: ["0 1", "1 2", "0 1 2", "1"], answer: "0 1", category: "coding", level: 1 },
+            // { id: 4, question: "What is the output?<br><pre>console.log(typeof []);</pre>", options: ["array", "object", "[]", "undefined"], answer: "object", category: "coding", level: 1 },
+            // { id: 5, question: "What is the result?<br><pre>console.log(10 % 3);</pre>", options: ["1", "3", "0", "10"], answer: "1", category: "coding", level: 1 },
+            // { id: 6, question: "What is printed?<br><pre>let arr = [1, 2, 3]; console.log(arr[1]);</pre>", options: ["1", "2", "3", "undefined"], answer: "2", category: "coding", level: 1 },
+            // { id: 7, question: "What is the output?<br><pre>console.log(Boolean('')); console.log(Boolean('0'));</pre>", options: ["true, false", "false, true", "false, false", "true, true"], answer: "false, true", category: "coding", level: 1 },
+            // { id: 8, question: "What is printed?<br><pre>function greet() { return 'Hi'; } console.log(greet());</pre>", options: ["Hi", "undefined", "null", "Error"], answer: "Hi", category: "coding", level: 1 },
+            // { id: 9, question: "What is the output?<br><pre>console.log(3 == '3'); console.log(3 === '3');</pre>", options: ["true, true", "true, false", "false, true", "false, false"], answer: "true, false", category: "coding", level: 1 },
+            // { id: 10, question: "What is printed?<br><pre>let x = 10; if (x > 5) { console.log('Yes'); } else { console.log('No'); }</pre>", options: ["Yes", "No", "10", "Error"], answer: "Yes", category: "coding", level: 1 },
+            // { id: 11, question: "What is the output?<br><pre>console.log(Math.floor(4.7));</pre>", options: ["4", "5", "4.7", "undefined"], answer: "4", category: "coding", level: 1 },
+            // { id: 12, question: "What is printed?<br><pre>console.log('Hello'.length);</pre>", options: ["4", "5", "6", "Hello"], answer: "5", category: "coding", level: 1 },
+            // { id: 13, question: "What is the output?<br><pre>let a = [1, 2]; a.push(3); console.log(a);</pre>", options: ["[1, 2]", "[1, 2, 3]", "[3]", "Error"], answer: "[1, 2, 3]", category: "coding", level: 1 },
+            // { id: 14, question: "What is printed?<br><pre>console.log(0 || 5);</pre>", options: ["0", "5", "true", "false"], answer: "5", category: "coding", level: 1 },
+            // { id: 15, question: "What is the output?<br><pre>console.log(!!'hello');</pre>", options: ["'hello'", "true", "false", "undefined"], answer: "true", category: "coding", level: 1 },
+
+            // LEVEL 2 – HARD CODING QUESTIONS
+{
+  id: 31,
+  question: "What is the output of the following Java code?<br><pre>int x = 5;<br>System.out.println(x++ + ++x + x++);</pre>",
+  options: ["17", "18", "19", "20"],
+  answer: "19",
+  category: "coding",
+  level: 2
+},
+            { id: 32, question: "What is the output?<br><pre>let x = 1; function foo() { console.log(x); let x = 2; } foo();</pre>", options: ["1", "2", "undefined", "ReferenceError"], answer: "ReferenceError", category: "coding", level: 2 },
+            { id: 33, question: "What is printed?<br><pre>console.log([1, 2] + [3, 4]);</pre>", options: ["[1,2,3,4]", "1,23,4", "1,2,3,4", "[1,2][3,4]"], answer: "1,23,4", category: "coding", level: 2 },
+            { id: 34, question: "What is the output?<br><pre>setTimeout(() => console.log(1), 0); console.log(2);</pre>", options: ["1 2", "2 1", "1", "2"], answer: "2 1", category: "coding", level: 2 },
+            { id: 35, question: "What is printed?<br><pre>const obj = { a: 1 }; const copy = obj; copy.a = 2; console.log(obj.a);</pre>", options: ["1", "2", "undefined", "Error"], answer: "2", category: "coding", level: 2 },
+            { id: 36, question: "What is the output?<br><pre>console.log(typeof null);</pre>", options: ["null", "object", "undefined", "string"], answer: "object", category: "coding", level: 2 },
+            { id: 37, question: "What is printed?<br><pre>function f(a = 1, b = a) { console.log(b); } f();</pre>", options: ["1", "undefined", "0", "Error"], answer: "1", category: "coding", level: 2 },
+            { id: 38, question: "What is the output?<br><pre>console.log(0.1 + 0.2 === 0.3);</pre>", options: ["true", "false", "0.3", "NaN"], answer: "false", category: "coding", level: 2 },
+            { id: 39, question: "What is printed?<br><pre>let arr = [10, 20, 30]; arr.length = 1; console.log(arr);</pre>", options: ["[10]", "[10, 20, 30]", "[1]", "[]"], answer: "[10]", category: "coding", level: 2 },
+            { id: 40, question: "What is the output?<br><pre>console.log([] + []);</pre>", options: ["0", "''", "[]", "undefined"], answer: "''", category: "coding", level: 2 },
+            { id: 41, question: "What is printed?<br><pre>const x = [1, 2, 3]; const y = [...x]; y.push(4); console.log(x.length);</pre>", options: ["3", "4", "5", "Error"], answer: "3", category: "coding", level: 2 },
+            { id: 42, question: "What is the output?<br><pre>console.log(1 < 2 < 3); console.log(3 > 2 > 1);</pre>", options: ["true, true", "true, false", "false, true", "false, false"], answer: "true, false", category: "coding", level: 2 },
+            { id: 43, question: "What is printed?<br><pre>var a = 1; function test() { console.log(a); var a = 2; } test();</pre>", options: ["1", "2", "undefined", "ReferenceError"], answer: "undefined", category: "coding", level: 2 },
+            { id: 44, question: "What is the output?<br><pre>console.log(typeof typeof 42);</pre>", options: ["number", "string", "undefined", "object"], answer: "string", category: "coding", level: 2 },
+            { id: 45, question: "What is printed?<br><pre>console.log('b' + 'a' + + 'a' + 'a');</pre>", options: ["baaa", "baNaNa", "ba2a", "NaN"], answer: "baNaNa", category: "coding", level: 2 },
+            { id: 46, question: "What is the output?<br><pre>let f = () => 10; console.log(f());</pre>", options: ["10", "undefined", "() => 10", "Error"], answer: "10", category: "coding", level: 2 },
+            {
+  "id": 47,
+  "question": "What will be the output?\n\nx = [[0]*3]*3\nx[0][0] = 1\nprint(x)",
+  "options": [
+    "[[1,0,0],[0,0,0],[0,0,0]]",
+    "[[1,0,0],[1,0,0],[1,0,0]]",
+    "[[0,0,0],[0,0,0],[1,0,0]]",
+    "Error"
+  ],
+  "answer": "[[1,0,0],[1,0,0],[1,0,0]]",
+  "category": "python",
+  "level": 2
+},
+{
+  "id": 48,
+  "question": "What is the output?\n\nprint(bool(0), bool(\"False\"), bool([]), bool([0]))",
+  "options": [
+    "False False False False",
+    "False True False True",
+    "True True True True",
+    "False False True True"
+  ],
+  "answer": "False True False True",
+  "category": "python",
+  "level": 2
+},
+{
+  "id": 49,
+  "question": "Which of the following has O(1) time for both insertion and deletion at ends?",
+  "options": ["Array", "Stack", "Queue", "Deque"],
+  "answer": "Deque",
+  "category": "data_structures",
+  "level": 2
+},
+{
+  "id": 50,
+  "question": "Which data structure is best suited for implementing recursion?",
+  "options": ["Queue", "Stack", "Linked List", "Heap"],
+  "answer": "Stack",
+  "category": "data_structures",
+  "level": 2
+},
+{
+  "id": 51,
+  "question": "Which is NOT greedy?",
+  "options": ["Kruskal", "Dijkstra", "Floyd-Warshall", "Prim"],
+  "answer": "Floyd-Warshall",
+  "category": "algorithms",
+  "level": 2
+},
+{
+  "id": 52,
+  "question": "Which problem uses DP?",
+  "options": ["0/1 Knapsack", "Fractional Knapsack", "Kruskal", "DFS"],
+  "answer": "0/1 Knapsack",
+  "category": "algorithms",
+  "level": 2
+},
+{
+  "id": 53,
+  "question": "Algorithm using backtracking?",
+  "options": ["N-Queens", "Dijkstra", "Prim", "Merge Sort"],
+  "answer": "N-Queens",
+  "category": "algorithms",
+  "level": 2
+},
+{
+  "id": 54,
+  "question": "Concept for runtime polymorphism?",
+  "options": ["Overloading", "Overriding", "Data hiding", "Abstraction"],
+  "answer": "Overriding",
+  "category": "oops",
+  "level": 2
+},
+{
+  "id": 55,
+  "question": "NOT an access specifier in C++?",
+  "options": ["public", "private", "internal", "protected"],
+  "answer": "internal",
+  "category": "cpp",
+  "level": 2
+},
+{
+  "id": 56,
+  "question": "Multiple inheritance?",
+  "options": [
+    "One class inherits multiple",
+    "One class inherited by multiple",
+    "Both",
+    "None"
+  ],
+  "answer": "One class inherits multiple",
+  "category": "oops",
+  "level": 1
+},
+{
+  "id": 57,
+  "question": "Which technique is used in Merge Sort?",
+  "options": ["DP", "Divide & Conquer", "Greedy", "Backtracking"],
+  "answer": "Divide & Conquer",
+  "category": "algorithms",
+  "level": 1
+},
+{ id: 58, question: "What is printed?<br><pre>console.log('Hello'.length);</pre>", options: ["4", "5", "6", "Hello"], answer: "5", category: "coding", level: 1 },
+            { id: 59, question: "What is the output?<br><pre>let a = [1, 2]; a.push(3); console.log(a);</pre>", options: ["[1, 2]", "[1, 2, 3]", "[3]", "Error"], answer: "[1, 2, 3]", category: "coding", level: 1 },
+            { id: 60, question: "What is printed?<br><pre>console.log(0 || 5);</pre>", options: ["0", "5", "true", "false"], answer: "5", category: "coding", level: 1 },
+            { id: 61, question: "What is the output?<br><pre>console.log(!!'hello');</pre>", options: ["'hello'", "true", "false", "undefined"], answer: "true", category: "coding", level: 1 },
+
+
+        ];
+
+        function shuffleArray(array) {
+            let currentIndex = array.length, randomIndex;
+            while (currentIndex !== 0) {
+                randomIndex = Math.floor(Math.random() * currentIndex);
+                currentIndex--;
+                [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+            }
+            return array;
+        }
+
+        // function fetchRandomQuizQuestions() {
+        //     const levelQuestions = QUIZ_DATABASE.filter(q => q.level === appState.currentLevel);
+        //     const shuffled = shuffleArray([...levelQuestions]);
+        //     return shuffled.slice(0, 10);
+        // }
+        function fetchRandomQuizQuestions() {
+    const levelQuestions = QUIZ_DATABASE.filter(q => q.level === appState.currentLevel);
+    const shuffled = shuffleArray([...levelQuestions]);
+    const count = appState.currentLevel === 1 ? 15 : 15;
+    return shuffled.slice(0, count);
+}
+
+        function renderView() {
+            const appContent = document.getElementById('app-content');
+            appContent.innerHTML = '';
+            if (appState.timer) {
+                clearInterval(appState.timer);
+                appState.timer = null;
+            }
+            switch (appState.currentView) {
+                case 'login': renderLogin(); break;
+                case 'exam': renderExam(); break;
+                case 'result': renderResult(); break;
+                case 'admin': renderAdmin(); break;
+            }
+        }
+
+        function renderLogin() {
+            document.title = "Logic Lab - Login";
+            const adminBtn = `<a href="#" onclick="showAdminView(event)" class="btn btn-sm btn-warning text-white"><i class="fas fa-chart-line"></i> Admin</a>`;
+            document.getElementById('app-content').innerHTML = `
+                <div class="header">
+                    <h1>Logic Lab <i class="fas fa-brain"></i></h1>
+                    ${adminBtn}
+                </div>
+                <div class="quiz-card d-flex flex-column align-items-center">
+                    <div class="card p-4 shadow-sm" style="max-width: 400px; width: 100%;">
+                        <h2 class="card-title text-center text-primary mb-4">Login</h2>
+                        <form id="loginForm" onsubmit="handleLogin(event)">
+                            <div class="mb-3"><input type="text" class="form-control" id="name" placeholder="Name" required></div>
+                            <div class="mb-3"><input type="email" class="form-control" id="email" placeholder="Email" required></div>
+                            <div class="mb-3"><input type="password" class="form-control" id="password" placeholder="Exam Password" required></div>
+                            <div id="loginMessage" class="alert d-none"></div>
+                            <button type="submit" class="btn btn-primary w-100">Start Exam</button>
+                        </form>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const name = document.getElementById('name').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const pwd = document.getElementById('password').value;
+            const msg = document.getElementById('loginMessage');
+            if (pwd !== EXAM_PASSWORD) {
+                msg.className = 'alert alert-danger d-block';
+                msg.textContent = 'Invalid Exam Password.';
+                return;
+            }
+            const users = await loadAllUserRecords();
+            if (users.some(u => u.email.toLowerCase() === email.toLowerCase())) {
+                showMessageModal("Already Attempted", "<p>You've already taken the exam.</p>", "danger", "OK", "renderView()");
+                return;
+            }
+            appState.currentUser = { name, email, marks: { level1: null, level2: null } };
+            appState.currentLevel = 1;
+            appState.currentQuizQuestions = fetchRandomQuizQuestions();
+            appState.userAnswers = {};
+            appState.currentView = 'exam';
+            renderView();
+        }
+
+        function showAdminView(e) {
+            e.preventDefault();
+            const pwd = prompt("Admin Password:");
+            if (pwd === ADMIN_PASSWORD) {
+                appState.currentView = 'admin';
+                renderView();
+            } else if (pwd !== null) {
+                showMessageModal("Access Denied", "<p>Incorrect Admin Password.</p>", "danger", "OK", "void(0)");
+            }
+        }
+
+        function startTimer() {
+            const el = document.getElementById('timerDisplay');
+            const total = LEVEL_CONFIG[appState.currentLevel].time;
+            if (appState.timeRemaining === 0) appState.timeRemaining = total;
+            const tick = () => {
+                const m = Math.floor(appState.timeRemaining / 60);
+                const s = appState.timeRemaining % 60;
+                el.textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+                el.className = 'badge timer-badge';
+                if (appState.timeRemaining <= 60) el.classList.add('bg-danger');
+                else if (appState.timeRemaining <= 180) el.classList.add('bg-warning');
+                if (appState.timeRemaining <= 0) {
+                    clearInterval(appState.timer);
+                    handleQuizSubmission(true);
+                    return;
+                }
+                appState.timeRemaining--;
+            };
+            tick();
+            appState.timer = setInterval(tick, 1000);
+        }
+
+        function renderExam() {
+            const lvl = appState.currentLevel;
+            const info = LEVEL_CONFIG[lvl];
+            document.title = `Logic Lab - Level ${lvl}: ${info.name}`;
+            const header = `
+                <div class="header">
+                    <div><h1>Logic Lab</h1><span class="badge bg-light text-primary">Level ${lvl}: ${info.name}</span></div>
+                    <span class="badge bg-warning text-dark timer-badge" id="timerDisplay"></span>
+                </div>
+            `;
+            const qHtml = appState.currentQuizQuestions.map((q, i) => {
+                const opts = q.options.map((opt, j) => `
+                    <label class="option-label">
+                        <input type="radio" name="q_${q.id}" value="${opt}" 
+                            ${appState.userAnswers[q.id] === opt ? 'checked' : ''} 
+                            onchange="saveAnswer(${q.id}, '${opt}')">
+                        <span class="fw-bold">${String.fromCharCode(65 + j)})</span> ${opt}
+                    </label>
+                `).join('');
+                return `
+                    <div class="question-item">
+                        <p class="fw-bold">Q${i + 1} (${q.category})</p>
+                        <p>${q.question}</p>
+                        <div>${opts}</div>
+                    </div>
+                `;
+            }).join('');
+            document.getElementById('app-content').innerHTML = `
+                ${header}
+                <div class="quiz-card">
+                    <div class="d-flex justify-content-between mb-4">
+                        <h3>Progress: <span class="text-primary">${lvl}/2</span></h3>
+                        <small>Need ${info.minScore}/5 to pass</small>
+                    </div>
+                    <form onsubmit="handleQuizSubmission(false, event)">
+                        ${qHtml}
+                        <button type="submit" class="btn btn-success w-100 mt-4">Submit Level ${lvl}</button>
+                    </form>
+                </div>
+            `;
+            startTimer();
+        }
+
+        function saveAnswer(id, ans) {
+            appState.userAnswers[id] = ans;
+        }
+
+        function handleQuizSubmission(isTimeout, e) {
+            if (e) e.preventDefault();
+            clearInterval(appState.timer);
+            let correct = 0;
+            const lvl = appState.currentLevel;
+            const key = LEVEL_CONFIG[lvl].levelKey;
+            appState.currentQuizQuestions.forEach(q => {
+                if (appState.userAnswers[q.id] === q.answer) correct++;
+            });
+            appState.currentUser.marks[key] = correct;
+            saveUserRecord(appState.currentUser);
+            const passed = correct >= PASS_THRESHOLD;
+            if (passed && lvl === 1) {
+                // Go to Level 2
+                appState.currentLevel = 2;
+                appState.currentQuizQuestions = fetchRandomQuizQuestions();
+                appState.userAnswers = {};
+                appState.timeRemaining = 0;
+                showMessageModal(
+                    `Level 1 Passed! (${correct}/15)`,
+                    `<p>Great! Now attempt Level 2: Hard.</p>`,
+                    "success",
+                    "Start Level 2",
+                    "renderView()"
+                );
+            } else {
+                // Final result (either failed or completed Level 2)
+                appState.currentView = 'result';
+                renderView();
+            }
+        }
+
+        function renderResult() {
+            document.title = "Logic Lab - Results";
+            const l1 = appState.currentUser.marks.level1 || 0;
+            const l2 = appState.currentUser.marks.level2 || 0;
+            const total = l1 + l2;
+            const passed = l2 !== null && l1 >= PASS_THRESHOLD && l2 >= PASS_THRESHOLD;
+            const icon = passed ? 'fas fa-medal success-icon' : 'fas fa-times-circle fail-icon';
+            const title = passed ? 'Congratulations! 🎉' : 'Exam Complete';
+            const msg = passed ? 
+                '<p class="fs-4 text-success">You passed both levels!</p>' :
+                '<p class="fs-4 text-danger">You did not pass both levels.</p>';
+            document.getElementById('app-content').innerHTML = `
+                <div class="header">
+                    <h1>Logic Lab <i class="fas fa-graduation-cap"></i></h1>
+                    <a href="#" onclick="appState.currentView='login'; renderView()" class="btn btn-sm btn-light">New Exam</a>
+                </div>
+                <div class="quiz-card result-card">
+                    <i class="${icon}"></i>
+                    <h2>${title}</h2>
+                    ${msg}
+                    <div class="card p-4 mx-auto" style="max-width: 500px;">
+                        <h4>Scorecard</h4>
+                        <ul class="list-group">
+                            <li class="list-group-item d-flex justify-content-between">Level 1 (Easy): <span>${l1}/5</span></li>
+                            <li class="list-group-item d-flex justify-content-between">Level 2 (Hard): <span>${l2}/5</span></li>
+                            <li class="list-group-item d-flex justify-content-between fw-bold">Total: <span>${total}/10</span></li>
+                        </ul>
+                    </div>
+                    <button onclick="appState.currentView='login'; renderView()" class="btn btn-primary mt-3">New Exam</button>
+                </div>
+            `;
+        }
+
+        async function renderAdmin() {
+            document.title = "Admin Dashboard";
+            const users = await loadAllUserRecords();
+            const rows = users.map(u => {
+                const l1 = u.marks.level1 || 0;
+                const l2 = u.marks.level2 || 0;
+                return `
+                    <tr>
+                        <td>${u.name}</td>
+                        <td>${u.email}</td>
+                        <td>${u.marks.level1 !== null ? u.marks.level1 : '-'}</td>
+                        <td>${u.marks.level2 !== null ? u.marks.level2 : '-'}</td>
+                        <td class="fw-bold">${l1 + l2}/10</td>
+                        <td><button class="btn btn-sm btn-danger" onclick="removeUser('${u.email}')"><i class="fas fa-trash"></i></button></td>
+                    </tr>
+                `;
+            }).join('');
+            document.getElementById('app-content').innerHTML = `
+                <div class="header">
+                    <h1>Admin <i class="fas fa-user-shield"></i></h1>
+                    <a href="#" onclick="appState.currentView='login'; renderView()" class="btn btn-sm btn-light">Back</a>
+                </div>
+                <div class="quiz-card">
+                    <h3>Participants (${users.length})</h3>
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead class="table-light">
+                                <tr><th>Name</th><th>Email</th><th>L1</th><th>L2</th><th>Total</th><th>Action</th></tr>
+                            </thead>
+                            <tbody>${rows || '<tr><td colspan="6" class="text-center">No records</td></tr>'}</tbody>
+                        </table>
+                    </div>
+                    <button onclick="clearAllRecords()" class="btn btn-danger mt-3">Clear All</button>
+                </div>
+            `;
+        }
+
+        // Firestore functions
+        async function loadAllUserRecords() {
+            const snap = await getDocs(collection(db, "participants"));
+            return snap.docs.map(d => d.data());
+        }
+        async function saveUserRecord(user) {
+            await setDoc(doc(db, "participants", user.email), user);
+        }
+        async function removeUser(email) {
+            await deleteDoc(doc(db, "participants", email));
+            renderAdmin();
+        }
+        async function clearAllRecords() {
+            const users = await loadAllUserRecords();
+            for (const u of users) await deleteDoc(doc(db, "participants", u.email));
+            renderAdmin();
+        }
+
+        function showMessageModal(title, body, type, actionText, actionFn) {
+            const modal = document.getElementById('messageModal');
+            document.getElementById('messageModalLabel').innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'times-circle'}"></i> ${title}`;
+            document.getElementById('messageModalBody').innerHTML = body;
+            const btn = document.getElementById('modalActionBtn');
+            btn.textContent = actionText;
+            btn.className = `btn btn-${type}`;
+            btn.onclick = () => {
+                bootstrap.Modal.getInstance(modal).hide();
+                setTimeout(() => eval(actionFn), 300);
+            };
+            new bootstrap.Modal(modal, { backdrop: 'static' }).show();
+        }
+
+        window.onload = () => {
+            setTimeout(renderView, 300);
+        };
+    </script>
+</body>
+</html>
