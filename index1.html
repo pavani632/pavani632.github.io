@@ -700,7 +700,7 @@
                         <form id="loginForm" onsubmit="handleLogin(event)">
                             <div class="mb-3"><input type="text" class="form-control" id="name" placeholder="Name" required></div>
                             <div class="mb-3"><input type="email" class="form-control" id="email" placeholder="Email" required></div>
-                            <div class="mb-3"><input type="password" class="form-control" id="password" placeholder="Exam Password" required></div>
+                            <div class="mb-3"><input type="password" class="form-control" id="password" placeholder="Password" required></div>
                             <div id="loginMessage" class="alert d-none"></div>
                             <button type="submit" class="btn btn-primary w-100">Start Exam</button>
                         </form>
@@ -735,7 +735,7 @@
 
         function showAdminView(e) {
             e.preventDefault();
-            const pwd = prompt("Admin Password:");
+            const pwd = prompt("Password:");
             if (pwd === ADMIN_PASSWORD) {
                 appState.currentView = 'admin';
                 renderView();
@@ -787,7 +787,7 @@
                 `).join('');
                 return `
                     <div class="question-item">
-                        <p class="fw-bold">Q${i + 1} (${q.category})</p>
+                        <p class="fw-bold">Q${i + 1} </p>
                         <p>${q.question}</p>
                         <div>${opts}</div>
                     </div>
@@ -859,7 +859,7 @@
             document.getElementById('app-content').innerHTML = `
                 <div class="header">
                     <h1>Logic Lab <i class="fas fa-graduation-cap"></i></h1>
-                    <a href="#" onclick="appState.currentView='login'; renderView()" class="btn btn-sm btn-light">New Exam</a>
+                    <a href="#" onclick="appState.currentView='login'; renderView()" class="btn btn-sm btn-light">Back</a>
                 </div>
                 <div class="quiz-card result-card">
                     <i class="${icon}"></i>
@@ -873,7 +873,7 @@
                             <li class="list-group-item d-flex justify-content-between fw-bold">Total: <span>${total}/10</span></li>
                         </ul>
                     </div>
-                    <button onclick="appState.currentView='login'; renderView()" class="btn btn-primary mt-3">New Exam</button>
+                    <button onclick="appState.currentView='login'; renderView()" class="btn btn-primary mt-3">Back</button>
                 </div>
             `;
         }
